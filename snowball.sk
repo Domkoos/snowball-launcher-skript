@@ -1,0 +1,60 @@
+# Github : https://github.com/Domkoos/snowball-launcher-skript
+# Crate by domkos_
+# Commands /snowball
+# ElyraPVP
+variables:
+    {snowball_cooldown::%player's uuid%} = now - 30 seconds
+    {snowball_launcher::%player's uuid%} = 0
+
+command /snowball:
+    description: Aktivuje snowball launcher
+    usage: /snowball
+    cooldown: 30 seconds
+    trigger:
+        give player 1 of carrot on a stick named "&aSnowball Launcher"
+        set {snowball_launcher::%player's uuid%} to 1
+        send "&aSnowball Launcher aktivován! Klikni pravým tlačítkem na mrkev na prutu." to player
+
+on rightclick:
+    if {snowball_launcher::%player's uuid%} is 1:
+        if player is holding carrot on a stick named "&aSnowball Launcher":
+            set {_cooldown} to difference between {snowball_cooldown::%player's uuid%} and now
+            if {_cooldown} is less than 30 seconds:
+                set {_remaining} to (30 - {_cooldown} parsed as integer)
+                send "&cPočkej %{_remaining}% sekund!" to player
+                stop
+            shoot a snowball from player at speed 3
+            send "&aSněhová koule vystřelena!" to player
+            play sound "entity.snowball.throw" at player with volume 1 and pitch 1
+            set {snowball_cooldown::%player's uuid%} to now
+            set {_snowball} to last spawned snowball
+            set {snowball_owner::%{_snowball}%} to player's uuid
+            if player is sprinting:
+                while {_snowball} is alive:
+                    wait 1 tick
+                    if block at {_snowball} is solid:
+                        play sound "entity.generic.explode" at location of {_snowball} with volume 1 and pitch 1
+                        spawn particle "explosion" at location of {_snowball}
+                        send "&aSněhová koule explodovala!" to player
+                        delete {_snowball}
+                        stop
+
+on projectile hit:
+    if projectile is a snowball:
+        set {_shooter} to {snowball_owner::%projectile%}
+        if victim is set:
+            if victim is not {_shooter}:
+                if victim's armor contains diamond helmet, diamond chestplate, diamond leggings, or diamond boots:
+                    damage victim by 27.5 hearts
+                    send "&cByl jsi zasažen sněhovou koulí a okamžitě zabit, i přes diamantový armor!" to victim if victim is a player
+                    send "&aZasáhl jsi %victim% a okamžitě ho zabil, i přes jeho diamantový armor!" to {_shooter}
+                else:
+                    damage victim by 27.5 hearts
+                    send "&cByl jsi zasažen sněhovou koulí a okamžitě zabit!" to victim if victim is a player
+                    send "&aZasáhl jsi %victim% a okamžitě ho zabil!" to {_shooter}
+
+on drop:
+    if dropped item is carrot on a stick named "&aSnowball Launcher":
+        if {snowball_launcher::%player's uuid%} is 1:
+            set {snowball_launcher::%player's uuid%} to 0
+            send "&cSnowball Launcher deaktivován." to player
